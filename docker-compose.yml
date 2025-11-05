@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai_cache_postgres
+    environment:
+      POSTGRES_USER: goml
+      POSTGRES_PASSWORD: goml_pass
+      POSTGRES_DB: goml_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U goml"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai_cache_network
+
+  # Redis (L2 Cache)
+  redis:
+    image: redis:7-alpine
+    container_name: ai_cache_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - ai_cache_network
+
+  # Memcached (L1 Cache)
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: ai_cache_memcached
+    ports:
+      - "11211:11211"
+    command: memcached -m 128
+    networks:
+      - ai_cache_network
+
+  # FastAPI Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_cache_app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      memcached:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://goml:goml_pass@postgres:5432/goml_db
+      - REDIS_URL=redis://redis:6379/0
+      - MEMCACHE_HOST=memcached
+      - MEMCACHE_PORT=11211
+      - DEBUG=true
+    volumes:
+      - ./app:/app/app  # Mount app directory for hot reload
+    networks:
+      - ai_cache_network
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  ai_cache_network:
+    driver: bridge
