@@ -22,6 +22,7 @@ wheels/
 MANIFEST
 
 # Virtual Environment
+.env
 fastapienv/
 env/
 ENV/
