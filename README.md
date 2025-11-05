@@ -22,12 +22,24 @@ A high-performance FastAPI backend with **two-layer caching** (Memcached + Redis
 
 ### 1. Configure Environment
 
-Edit `.env` with your API keys:
+**⚠️ IMPORTANT: Never commit your `.env` file to Git!**
+
+Copy the example file and add your API keys:
 
 ```bash
+# Copy the example
+cp .env.example .env
+
+# Edit .env with your actual API keys
 GROQ_API_KEY=your_groq_api_key_here
 HF_API_KEY=your_huggingface_token_here
+DATABASE_URL=your_neon_db_connection_string
 ```
+
+**Get your API keys:**
+- Groq API: https://console.groq.com/keys
+- HuggingFace: https://huggingface.co/settings/tokens
+- Neon DB: https://console.neon.tech/
 
 ### 2. Start with Docker Compose
 
