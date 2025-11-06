@@ -100,15 +100,6 @@ async def root():
         }
     }
 
-
-@app.get("/ping", tags=["Health"])
-async def ping():
-    """
-    Simple ping endpoint.
-    """
-    return {"status": "ok"}
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

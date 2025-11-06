@@ -2,7 +2,7 @@ from sqlalchemy import Column, BigInteger, String, Boolean, Integer, Float, TIME
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+Base = declarative_base()  
 
 
 class RequestLog(Base):
