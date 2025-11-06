@@ -4,19 +4,18 @@ import requests
 from typing import Dict, Any, Tuple
 from io import BytesIO
 
-from app.config import GROQ_API_KEY, HF_API_KEY, GROQ_MODEL
+from app.core.config import GROQ_API_KEY, GROQ_MODEL
 
 logger = logging.getLogger(__name__)
 
 
 class AIService:
     """
-    Handles AI model calls for text (Groq) and image (HuggingFace) tasks.
+    Handles AI model calls for text and image tasks using Groq API.
     """
     
     def __init__(self):
         self.groq_api_key = GROQ_API_KEY
-        self.hf_api_key = HF_API_KEY
         self.groq_model = GROQ_MODEL
     
     def process_text_task(self, task_type: str, text: str, params: dict = None) -> Dict[str, Any]:
@@ -46,55 +45,61 @@ class AIService:
     
     def process_image_task(self, task_type: str, image_source: str, params: dict = None) -> Dict[str, Any]:
         """
-        Process image tasks using HuggingFace Inference API.
+        Process image tasks using Groq Vision API (Llama 4 Scout).
         Supports: image_classification, image_captioning
         """
-        if not self.hf_api_key:
-            raise ValueError("HF_API_KEY not configured")
+        if not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY not configured")
         
         params = params or {}
         
         try:
+            # Import Groq vision functions
+            from app.services.groq_vision_service import classify_image_groq, caption_image_groq
+            
             # Download image
             image_data = self._download_image(image_source)
             
-            # Call appropriate HF model
+            # Call appropriate Groq vision function
             if task_type == "image_classification":
-                output = self._call_hf_image_classification(image_data, params)
+                output = classify_image_groq(image_data)
             elif task_type == "image_captioning":
-                output = self._call_hf_image_captioning(image_data, params)
+                output = caption_image_groq(image_data)
             else:
                 raise ValueError(f"Unsupported image task: {task_type}")
             
             return output
             
         except Exception as e:
-            logger.error(f"HuggingFace API error: {e}")
+            logger.error(f"Groq Vision API error: {e}")
             raise
     
     def process_image_bytes(self, task_type: str, image_bytes: bytes, params: dict = None) -> Dict[str, Any]:
         """
-        Process image tasks using HuggingFace Inference API with image bytes directly.
+        Process image tasks using Groq Vision API (Llama 4 Scout) with image bytes directly.
         Supports: image_classification, image_captioning
         """
-        if not self.hf_api_key:
-            raise ValueError("HF_API_KEY not configured")
+        if not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY not configured")
         
         params = params or {}
         
         try:
-            # Call appropriate HF model directly with bytes
+            # Import Groq vision functions
+            from app.services.groq_vision_service import classify_image_groq, caption_image_groq
+            
+            # Call appropriate Groq vision function directly with bytes
             if task_type == "image_classification":
-                output = self._call_hf_image_classification(image_bytes, params)
+                output = classify_image_groq(image_bytes)
             elif task_type == "image_captioning":
-                output = self._call_hf_image_captioning(image_bytes, params)
+                output = caption_image_groq(image_bytes)
             else:
                 raise ValueError(f"Unsupported image task: {task_type}")
             
             return output
             
         except Exception as e:
-            logger.error(f"HuggingFace API error: {e}")
+            logger.error(f"Groq Vision API error: {e}")
             raise
     
     def _build_text_prompt(self, task_type: str, text: str, params: dict) -> str:
@@ -208,93 +213,6 @@ Provide a summary in {max_length} words or less:"""
             return response.content
         else:
             raise ValueError("Only HTTP/HTTPS image URLs are supported")
-    
-    def _call_hf_image_classification(self, image_data: bytes, params: dict) -> Dict[str, Any]:
-        """
-        Call HuggingFace Image Classification API.
-        """
-        from app.config import HF_IMAGE_CLASSIFICATION_MODEL
-        
-        url = f"https://api-inference.huggingface.co/models/{HF_IMAGE_CLASSIFICATION_MODEL}"
-        
-        headers = {
-            "Authorization": f"Bearer {self.hf_api_key}"
-        }
-        
-        try:
-            response = requests.post(url, headers=headers, data=image_data, timeout=30)
-            
-            # Handle specific error cases
-            if response.status_code == 403:
-                error_msg = f"HuggingFace API returned 403 Forbidden for model: {HF_IMAGE_CLASSIFICATION_MODEL}\n"
-                error_msg += f"Response: {response.text}"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            
-            elif response.status_code == 503:
-                error_msg = f"Model {HF_IMAGE_CLASSIFICATION_MODEL} is currently loading. Please wait and try again."
-                logger.warning(error_msg)
-                raise ValueError(error_msg)
-            
-            response.raise_for_status()
-            
-            predictions = response.json()
-            
-            # Return top predictions
-            top_k = params.get("top_k", 5)
-            return {
-                "predictions": predictions[:top_k],
-                "model": HF_IMAGE_CLASSIFICATION_MODEL
-            }
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HuggingFace API request failed: {e}")
-            raise
-    
-    def _call_hf_image_captioning(self, image_data: bytes, params: dict) -> Dict[str, Any]:
-        """
-        Call HuggingFace Image Captioning API.
-        """
-        from app.config import HF_IMAGE_CAPTIONING_MODEL
-        
-        url = f"https://api-inference.huggingface.co/models/{HF_IMAGE_CAPTIONING_MODEL}"
-        
-        headers = {
-            "Authorization": f"Bearer {self.hf_api_key}"
-        }
-        
-        try:
-            response = requests.post(url, headers=headers, data=image_data, timeout=30)
-            
-            # Handle specific error cases
-            if response.status_code == 403:
-                error_msg = f"HuggingFace API returned 403 Forbidden. This could mean:\n"
-                error_msg += f"1. Your API token doesn't have access to model: {HF_IMAGE_CAPTIONING_MODEL}\n"
-                error_msg += f"2. The model requires special permissions\n"
-                error_msg += f"3. Try a different model in .env (e.g., nlpconnect/vit-gpt2-image-captioning)\n"
-                error_msg += f"Response: {response.text}"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            
-            elif response.status_code == 503:
-                # Model is loading
-                error_msg = f"Model {HF_IMAGE_CAPTIONING_MODEL} is currently loading. Please wait and try again."
-                logger.warning(error_msg)
-                raise ValueError(error_msg)
-            
-            response.raise_for_status()
-            
-            result = response.json()
-            
-            # Extract caption from response
-            caption = result[0]["generated_text"] if isinstance(result, list) else result.get("generated_text", "")
-            
-            return {
-                "caption": caption,
-                "model": HF_IMAGE_CAPTIONING_MODEL
-            }
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HuggingFace API request failed: {e}")
-            raise
 
 
 # Global AI service instance

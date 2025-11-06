@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from app.config import DATABASE_URL
+from app.core.config import DATABASE_URL
 from app.models import Base, RequestLog
 
 logger = logging.getLogger(__name__)

@@ -2,9 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
-from app.routes import router
+from app.routers import (
+    health_router,
+    statistics_router,
+    text_router,
+    image_router,
+    predict_router
+)
 from app.services.db_service import db_service
-from app.config import APP_NAME, DEBUG
+from app.core.config import APP_NAME, DEBUG
 
 # Configure logging
 logging.basicConfig(
@@ -57,8 +63,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routes
-app.include_router(router, prefix="/api/v1", tags=["AI Tasks"])
+# Include API routers
+app.include_router(predict_router, prefix="/api/v1")
+app.include_router(health_router, prefix="/api/v1")
+app.include_router(statistics_router, prefix="/api/v1")
+app.include_router(text_router, prefix="/api/v1")
+app.include_router(image_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Root"])
@@ -74,6 +84,18 @@ async def root():
             "predict": "/api/v1/predict",
             "health": "/api/v1/health",
             "statistics": "/api/v1/statistics",
+            "text": {
+                "summarize": "/api/v1/text/summarize",
+                "sentiment": "/api/v1/text/sentiment",
+                "translate": "/api/v1/text/translate",
+                "chat": "/api/v1/text/chat"
+            },
+            "image": {
+                "caption": "/api/v1/image/caption",
+                "caption_upload": "/api/v1/image/upload/caption",
+                "classify": "/api/v1/image/classify",
+                "classify_upload": "/api/v1/image/upload/classify"
+            },
             "docs": "/docs"
         }
     }

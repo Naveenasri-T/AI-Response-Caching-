@@ -1,3 +1,7 @@
+"""
+Application Configuration
+Centralized configuration management for the AI Response Caching application
+"""
 import os
 from dotenv import load_dotenv
 
@@ -15,14 +19,9 @@ MEMCACHE_HOST = os.getenv("MEMCACHE_HOST", "memcached")
 MEMCACHE_PORT = int(os.getenv("MEMCACHE_PORT", 11211))
 MEMCACHE_TTL = int(os.getenv("MEMCACHE_TTL", 300))  # 5 minutes
 
-# Groq API Configuration (Text AI)
+# Groq API Configuration (Text and Image AI)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-
-# HuggingFace Configuration (Image AI)
-HF_API_KEY = os.getenv("HF_API_KEY", "")
-HF_IMAGE_CLASSIFICATION_MODEL = os.getenv("HF_IMAGE_CLASSIFICATION_MODEL", "google/vit-base-patch16-224-in21k")
-HF_IMAGE_CAPTIONING_MODEL = os.getenv("HF_IMAGE_CAPTIONING_MODEL", "Salesforce/blip-image-captioning-base")
 
 # Application Settings
 APP_NAME = os.getenv("APP_NAME", "AI Response Caching POC")

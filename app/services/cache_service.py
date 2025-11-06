@@ -5,7 +5,7 @@ from pymemcache.client.base import Client as MemcacheClient
 from typing import Optional, Tuple, Any
 import logging
 
-from app.config import (
+from app.core.config import (
     REDIS_URL, 
     MEMCACHE_HOST, 
     MEMCACHE_PORT,
